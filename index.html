@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE LIFF Demo</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+    <h1>歡迎來到 LIFF！</h1>
+    <button id="login-btn">登入 LINE</button>
+    <button id="get-info-btn" style="display:none;">獲取資料</button>
+
+    <script>
+        // 初始化 LIFF
+        window.onload = function () {
+            liff.init({ liffId: "你的 LIFF ID" }).then(() => {
+                // 驗證是否已經登入 LINE
+                if (liff.isLoggedIn()) {
+                    document.getElementById("login-btn").style.display = "none";
+                    document.getElementById("get-info-btn").style.display = "block";
+                } else {
+                    liff.login();  // 如果沒有登入，要求登入
+                }
+            }).catch((err) => {
+                console.error('LIFF 初始化失敗:', err);
+            });
+        };
+
+        // 點擊按鈕獲取 LINE 使用者資料
+        document.getElementById('get-info-btn').addEventListener('click', function () {
+            liff.getProfile().then(profile => {
+                const userId = profile.userId;
+                const displayName = profile.displayName;
+                const agent = navigator.userAgent;
+
+                // 傳送資料到 Google Apps Script API
+                sendToGoogleSheet(userId, displayName, agent);
+            }).catch((err) => {
+                console.error('獲取資料失敗:', err);
+            });
+        });
+
+        // 將資料送到 Google Apps Script API
+        function sendToGoogleSheet(userId, displayName, agent) {
+            const payload = {
+                userId: userId,
+                displayName: displayName,
+                agent: agent
+            };
+
+            fetch("https://script.google.com/macros/s/AKfycbzHNsc3e_ewgEyO9Cr1VaLKq35_NEh1Wo9vBgLWExKrlO_DWWfAmZi7c1EgpzEYVuoy1Q/exec", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("資料已成功送出！");
+            })
+            .catch(error => {
+                console.error('發送資料失敗:', error);
+            });
+        }
+    </script>
+</body>
+</html>
