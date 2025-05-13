@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h2>資料上傳中，請稍候...v1.0.0</h2>
+    <h2>資料上傳中，請稍候...v1.0.1</h2>
 
     <script>
         const AIRTABLE_API_KEY = 'patTEkO1RrWvVmfHX.d8fd89805159e18b7d24130cf2dfd41e08519826d1f1fa78ad27cdc5dfca0c05';
@@ -58,6 +58,10 @@
                         .then(res => res.json())
                         .then(result => {
                             document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
+                            liff.openWindow({
+                                url: 'https://page.line.me/703tmwym',
+                                external: true
+                            });
                         })
                         .catch(err => {
                             console.error('資料寫入失敗:', err);
