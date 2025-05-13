@@ -4,48 +4,64 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>記錄使用者</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
   <h2>資料上傳中，請稍候...</h2>
 
   <script>
-    // 取得網址參數
+    const AIRTABLE_API_KEY = 'patTEkO1RrWvVmfHX.d8fd89805159e18b7d24130cf2dfd41e08519826d1f1fa78ad27cdc5dfca0c05'; 
+    const BASE_ID = 'appSNkPZK6WWQLIth';
+    const TABLE_NAME = 'line_users';
+
     function getQueryParam(name) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(name);
     }
 
-    // Airtable 設定
-    const AIRTABLE_API_KEY = 'patTEkO1RrWvVmfHX.d8fd89805159e18b7d24130cf2dfd41e08519826d1f1fa78ad27cdc5dfca0c05';
-    const BASE_ID = 'appSNkPZK6WWQLIth';
-    const TABLE_NAME = 'line_users';
-
-    // 要寫入的資料
-    const data = {
-      fields: {
-        userId: getQueryParam('userId') || '未知',
-        displayName: getQueryParam('displayName') || '未知',
-        agent: navigator.userAgent,
-        createdAt: new Date().toISOString()
+    // 初始化 LIFF
+    liff.init({ liffId: "2007400057-OLM401Q0" }).then(() => {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
       }
-    };
 
-    // 發送到 Airtable
-    fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-    .then(result => {
-      console.log('成功寫入 Airtable:', result);
-      document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
-    })
-    .catch(err => {
-      console.error('Airtable 寫入失敗:', err);
+      return liff.getProfile();
+    }).then(profile => {
+      if (!profile) return;
+
+      const userId = profile.userId;
+      const displayName = profile.displayName;
+      const agent = navigator.userAgent;
+      const createdAt = new Date().toISOString();
+      const agentParam = getQueryParam('agent') || agent;
+
+      const data = {
+        fields: {
+          userId,
+          displayName,
+          agent: agentParam,
+          createdAt
+        }
+      };
+
+      return fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+    }).then(res => {
+      if (res) return res.json();
+    }).then(result => {
+      if (result) {
+        console.log('✅ 成功寫入 Airtable:', result);
+        document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
+      }
+    }).catch(err => {
+      console.error('❌ 發生錯誤:', err);
       document.body.innerHTML = '<h2>資料寫入失敗，請稍後再試。</h2>';
     });
   </script>
