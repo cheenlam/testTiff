@@ -25,15 +25,13 @@
           const userId = profile.userId;
           const displayName = profile.displayName;
           const agent = navigator.userAgent;
-          const createdAt = new Date().toISOString();
-
+ 
           // 要寫入的資料
           const data = {
             fields: {
               userId,
               displayName,
-              agent,
-              createdAt
+              agent
             }
           };
 
