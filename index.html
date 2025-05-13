@@ -1,69 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LINE LIFF Demo</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>記錄使用者</title>
 </head>
 <body>
-    <h1>歡迎來到 LIFF！</h1>
-    <button id="login-btn">登入 LINE</button>
-    <button id="get-info-btn" style="display:none;">獲取資料</button>
+  <h2>資料上傳中，請稍候...</h2>
 
-    <script>
-        // 初始化 LIFF
-        window.onload = function () {
-            liff.init({ liffId: "2007400057-OLM401Q0" }).then(() => {
-                // 驗證是否已經登入 LINE
-                if (liff.isLoggedIn()) {
-                    document.getElementById("login-btn").style.display = "none";
-                    document.getElementById("get-info-btn").style.display = "block";
-                } else {
-                    liff.login();  // 如果沒有登入，要求登入
-                }
-            }).catch((err) => {
-                console.error('LIFF 初始化失敗:', err);
-            });
-        };
+  <script>
+    // 取得網址參數
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
 
-        // 點擊按鈕獲取 LINE 使用者資料
-        document.getElementById('get-info-btn').addEventListener('click', function () {
-            liff.getProfile().then(profile => {
-                const userId = profile.userId;
-                const displayName = profile.displayName;
-                const agent = navigator.userAgent;
+    // Airtable 設定
+    const AIRTABLE_API_KEY = 'patTEkO1RrWvVmfHX.d8fd89805159e18b7d24130cf2dfd41e08519826d1f1fa78ad27cdc5dfca0c05';
+    const BASE_ID = 'appSNkPZK6WWQLIth';
+    const TABLE_NAME = 'line_users';
 
-                // 傳送資料到 Google Apps Script API
-                sendToGoogleSheet(userId, displayName, agent);
-            }).catch((err) => {
-                console.error('獲取資料失敗:', err);
-            });
-        });
+    // 要寫入的資料
+    const data = {
+      fields: {
+        userId: getQueryParam('userId') || '未知',
+        displayName: getQueryParam('displayName') || '未知',
+        agent: navigator.userAgent,
+        createdAt: new Date().toISOString()
+      }
+    };
 
-        // 將資料送到 Google Apps Script API
-        function sendToGoogleSheet(userId, displayName, agent) {
-            const payload = {
-                userId: userId,
-                displayName: displayName,
-                agent: agent
-            };
-
-            fetch("https://script.google.com/macros/s/AKfycbzzlk09HWZTLABWnOwTMHKn-a6kkRaJLjFG-QUNCy35GfxzlG2zOs3UhmBr8nmWkLH8BQ/exec", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert("資料已成功送出！");
-            })
-            .catch(error => {
-                console.error('發送資料失敗:', error);
-            });
-        }
-    </script>
+    // 發送到 Airtable
+    fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+      console.log('成功寫入 Airtable:', result);
+      document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
+    })
+    .catch(err => {
+      console.error('Airtable 寫入失敗:', err);
+      document.body.innerHTML = '<h2>資料寫入失敗，請稍後再試。</h2>';
+    });
+  </script>
 </body>
 </html>
