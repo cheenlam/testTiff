@@ -14,55 +14,61 @@
     const BASE_ID = 'appSNkPZK6WWQLIth';
     const TABLE_NAME = 'line_users';
 
-    function getQueryParam(name) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(name);
-    }
-
     // 初始化 LIFF
     liff.init({ liffId: "2007400057-OLM401Q0" }).then(() => {
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
+      if (liff.isLoggedIn()) {
+        console.log('用戶已登入 LINE');
+        // 獲取使用者資料
+        liff.getProfile().then(profile => {
+          console.log('使用者資料:', profile);
+
+          const userId = profile.userId;
+          const displayName = profile.displayName;
+          const agent = navigator.userAgent;
+          const createdAt = new Date().toISOString();
+
+          // 要寫入的資料
+          const data = {
+            fields: {
+              userId,
+              displayName,
+              agent,
+              createdAt
+            }
+          };
+
+          // 發送資料到 Airtable
+          fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+          })
+          .then(res => res.json())
+          .then(result => {
+            document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
+          })
+          .catch(err => {
+            console.error('資料寫入失敗:', err);
+            document.body.innerHTML = '<h2>資料寫入失敗，請稍後再試。</h2>';
+          });
+        }).catch(err => {
+          console.error('獲取使用者資料失敗:', err);
+        });
+      } else {
+        console.log('用戶未登入 LINE');
+        liff.login();  // 如果未登入，請求登入
       }
-
-      return liff.getProfile();
-    }).then(profile => {
-      if (!profile) return;
-
-      const userId = profile.userId;
-      const displayName = profile.displayName;
-      const agent = navigator.userAgent;
-      const createdAt = new Date().toISOString();
-      const agentParam = getQueryParam('agent') || agent;
-
-      const data = {
-        fields: {
-          userId,
-          displayName,
-          agent: agentParam,
-          createdAt
-        }
-      };
-
-      return fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-    }).then(res => {
-      if (res) return res.json();
-    }).then(result => {
-      if (result) {
-        console.log('✅ 成功寫入 Airtable:', result);
-        document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
-      }
-    }).catch(err => {
-      console.error('❌ 發生錯誤:', err);
-      document.body.innerHTML = '<h2>資料寫入失敗，請稍後再試。</h2>';
+    }).catch((err) => {
+      console.error('LIFF 初始化錯誤:', err);
+      // 當初始化失敗時，可以重新初始化
+      setTimeout(() => {
+        liff.init({ liffId: "2007400057-OLM401Q0" }).catch(err => {
+          console.error('重新初始化 LIFF 錯誤:', err);
+        });
+      }, 1000);
     });
   </script>
 </body>
