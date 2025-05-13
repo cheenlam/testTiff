@@ -1,73 +1,85 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>記錄使用者</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>記錄使用者</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
+
 <body>
-  <h2>資料上傳中，請稍候...</h2>
+    <h2>資料上傳中，請稍候...</h2>
 
-  <script>
-    const AIRTABLE_API_KEY = 'patTEkO1RrWvVmfHX.d8fd89805159e18b7d24130cf2dfd41e08519826d1f1fa78ad27cdc5dfca0c05'; 
-    const BASE_ID = 'appSNkPZK6WWQLIth';
-    const TABLE_NAME = 'line_users';
+    <script>
+        const AIRTABLE_API_KEY = 'patTEkO1RrWvVmfHX.d8fd89805159e18b7d24130cf2dfd41e08519826d1f1fa78ad27cdc5dfca0c05';
+        const BASE_ID = 'appSNkPZK6WWQLIth';
+        const TABLE_NAME = 'line_users';
 
-    // 初始化 LIFF
-    liff.init({ liffId: "2007400057-OLM401Q0" }).then(() => {
-      if (liff.isLoggedIn()) {
-        console.log('用戶已登入 LINE');
-        // 獲取使用者資料
-        liff.getProfile().then(profile => {
-          console.log('使用者資料:', profile);
+        // 取得網址參數
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
 
-          const userId = profile.userId;
-          const displayName = profile.displayName;
-          const agent = navigator.userAgent;
+        // 初始化 LIFF
+        liff.init({ liffId: "2007400057-OLM401Q0" }).then(() => {
+            if (liff.isLoggedIn()) {
+                console.log('用戶已登入 LINE');
+                // 獲取使用者資料
+                liff.getProfile().then(profile => {
+                    console.log('使用者資料:', profile);
 
-          // 要寫入的資料
-          const data = {
-            fields: {
-              userId,
-              displayName,
-              agent
+                    const userId = profile.userId;
+                    const displayName = profile.displayName;
+                    const agent = getQueryParam('agent');
+
+                    // 如果沒有 agent 參數，則提供預設值
+                    const agentToSend = agent || '未知';
+
+                    // 要寫入的資料
+                    const data = {
+                        fields: {
+                            userId,
+                            displayName,
+                            agent: agentToSend
+                        }
+                    };
+
+                    // 發送資料到 Airtable
+                    fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                        .then(res => res.json())
+                        .then(result => {
+                            document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
+                        })
+                        .catch(err => {
+                            console.error('資料寫入失敗:', err);
+                            document.body.innerHTML = '<h2>資料寫入失敗，請稍後再試。</h2>';
+                        });
+                }).catch(err => {
+                    console.error('獲取使用者資料失敗:', err);
+                });
+            } else {
+                console.log('用戶未登入 LINE');
+                liff.login();  // 如果未登入，請求登入
             }
-          };
-
-          // 發送資料到 Airtable
-          fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-          })
-          .then(res => res.json())
-          .then(result => {
-            document.body.innerHTML = '<h2>資料已成功記錄，謝謝！</h2>';
-          })
-          .catch(err => {
-            console.error('資料寫入失敗:', err);
-            document.body.innerHTML = '<h2>資料寫入失敗，請稍後再試。</h2>';
-          });
-        }).catch(err => {
-          console.error('獲取使用者資料失敗:', err);
+        }).catch((err) => {
+            console.error('LIFF 初始化錯誤:', err);
+            // 當初始化失敗時，可以重新初始化
+            setTimeout(() => {
+                liff.init({ liffId: "2007400057-OLM401Q0" }).catch(err => {
+                    console.error('重新初始化 LIFF 錯誤:', err);
+                });
+            }, 1000);
         });
-      } else {
-        console.log('用戶未登入 LINE');
-        liff.login();  // 如果未登入，請求登入
-      }
-    }).catch((err) => {
-      console.error('LIFF 初始化錯誤:', err);
-      // 當初始化失敗時，可以重新初始化
-      setTimeout(() => {
-        liff.init({ liffId: "2007400057-OLM401Q0" }).catch(err => {
-          console.error('重新初始化 LIFF 錯誤:', err);
-        });
-      }, 1000);
-    });
-  </script>
+    </script>
 </body>
+
 </html>
